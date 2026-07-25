@@ -1,0 +1,58 @@
+name: Stock Monitor (Soeur Harold size 34)
+
+# 為什麼這樣設計：
+# GitHub cron 最短 5 分鐘、且常延遲/跳過，無法真正做到每 2-3 分鐘。
+# 對策：heartbeat 每 15 分觸發一次，每次執行讓 monitor.mjs 在內部自我迴圈
+# （檢查 → sleep 150 秒 → 重複約 14 分鐘），使有效檢查頻率維持在 ~2.5 分鐘。
+
+on:
+  schedule:
+    - cron: "*/15 * * * *" # heartbeat：每 15 分鐘（GitHub 實際可能延遲）
+  workflow_dispatch: {} # 允許在 Actions 頁面手動觸發（測試用）
+
+# 用內建 GITHUB_TOKEN 把 state.json commit 回 repo
+permissions:
+  contents: write
+
+# 避免兩次執行同時搶著寫 state.json
+concurrency:
+  group: stock-monitor
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Run stock monitor
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          # 想改追蹤目標就改這兩個值：
+          PRODUCT_URL: "https://thevillageoutlet.com/products/soeur-pantalon-harold-48d1748f-26db-41b0-b345-3179dcc60f5f"
+          TARGET_SIZE: "34"
+          # 迴圈參數（可微調頻率）：
+          LOOP_MINUTES: "14"
+          INTERVAL_SECONDS: "150"
+        run: node monitor.mjs
+
+      - name: Persist state
+        if: always()
+        run: |
+          if [[ -n "$(git status --porcelain state.json)" ]]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add state.json
+            git commit -m "chore: update stock state [skip ci]"
+            git push
+          else
+            echo "state.json 無變更，略過 commit。"
+          fi
