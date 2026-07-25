@@ -38,7 +38,7 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           # 想改追蹤目標就改這兩個值：
           PRODUCT_URL: "https://thevillageoutlet.com/products/soeur-pantalon-harold-48d1748f-26db-41b0-b345-3179dcc60f5f"
-          TARGET_SIZE: "34"
+          TARGET_SIZE: "42"
           # 迴圈參數（可微調頻率）：
           LOOP_MINUTES: "14"
           INTERVAL_SECONDS: "150"
