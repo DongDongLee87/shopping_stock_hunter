@@ -53,9 +53,10 @@ async function loadState() {
     return {
       inStock: Boolean(parsed.inStock),
       lastNotified: parsed.lastNotified || null,
+      heartbeatDate: parsed.heartbeatDate || null,
     };
   } catch {
-    return { inStock: false, lastNotified: null };
+    return { inStock: false, lastNotified: null, heartbeatDate: null };
   }
 }
 
@@ -214,6 +215,14 @@ async function main() {
     if (ONCE) break;
     if (Date.now() + CONFIG.intervalSeconds * 1000 >= deadline) break;
     await sleep(CONFIG.intervalSeconds * 1000);
+  }
+
+  // 心跳：每天至少更新一次 heartbeatDate，讓 state.json 每天有變動、
+  // 觸發一次 commit，保持 repo 活躍，避免 GitHub 60 天無活動自動暫停排程。
+  const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD (UTC)
+  if (state.heartbeatDate !== today) {
+    state.heartbeatDate = today;
+    log(`心跳：heartbeatDate → ${today}（保持 repo 活躍）`);
   }
 
   await saveState(state);

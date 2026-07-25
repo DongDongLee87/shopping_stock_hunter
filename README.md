@@ -108,5 +108,7 @@ node monitor.mjs --once      # 只檢查一次、印結果、不發通知
 
 ## 已知限制
 
+- **需設為 Public repo**：本設計幾乎整段時間都在執行，Private repo 的免費 Actions 額度（2,000 分鐘/月）約 1~2 天就會用光。**Public repo 的 Actions 免費且無上限**，才能真正 24 小時運作。Telegram token/chat id 存在加密 Secrets、不在程式碼裡，公開沒有風險。
+- **60 天自動暫停**：GitHub 會把連續 60 天無提交的排程停用。本程式內建**每日心跳**（每天首次執行會更新 `state.json` 的 `heartbeatDate` → 觸發一次 commit），讓 repo 每天保持活躍、不會被暫停。
 - **GitHub cron 不精準**：排程可能延遲數分鐘或偶爾跳過（GitHub 的已知行為），所以「每 2.5 分鐘」是盡力值而非保證。若你要更準時的高頻檢查，可改用 **Cloudflare Workers Cron Triggers**（免費、最短 1 分鐘、serverless），邏輯完全相同，只是換執行環境。
 - 通知策略是 **轉態通知**（無貨→有貨才發一次），避免洗版。若想「有貨後持續提醒直到你買到」，可以再加節流參數。
